@@ -16,3 +16,16 @@ jobs:
       - uses: golangci/golangci-lint-action@v6
         with:
           version: v1.59.1
+  small-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+      - name: go-mod/download
+        run: go mod download
+      - name: go-test/small-unit
+        run: go test -timeout 30s -run ^TestSmallUnit_ ./... 

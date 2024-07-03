@@ -7,6 +7,7 @@ import (
 	"log/slog"
 )
 
+// RouteReaderLoggerPipe creates a pipe that divides the data input from [io.Reader] into rows and outputs them to [log/slog.Logger].
 func RouteReaderLoggerPipe(ctx context.Context, level slog.Level, src io.Reader, dest *slog.Logger) {
 	routeReaderLoggerPipe(src, func(content []byte) { dest.Log(ctx, level, string(content)) })
 }

@@ -23,6 +23,7 @@ type groupOrAttrs struct {
 	attrs []slog.Attr
 }
 
+// TracingHandler is a log handler for tracing using Span in context.
 type TracingHandler struct {
 	senderCh     chan<- TraceLog
 	Enable       slog.Level
@@ -39,6 +40,7 @@ func NewTracingHandler(level slog.Level, dest chan<- TraceLog) *TracingHandler {
 	}
 }
 
+// Enabled indicates whether or not to output as logging.
 func (th *TracingHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 	span := SpanFromContext(ctx)
@@ -96,6 +98,7 @@ func appendJSONAttrs(buf []byte, attrs []slog.Attr) []byte {
 
 var attrsPool = util.NewSlicePool[[]slog.Attr]()
 
+// Handle generates a log from the record and context.
 func (th *TracingHandler) Handle(ctx context.Context, record slog.Record) error {
 
 	span := SpanFromContext(ctx)
@@ -150,6 +153,7 @@ func (th *TracingHandler) withGroupOrAttrs(goa groupOrAttrs) *TracingHandler {
 	return &handler
 }
 
+// WithAttrs returns a log handler containing attributes.
 func (th *TracingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	if len(attrs) == 0 {
 		return th
@@ -158,6 +162,7 @@ func (th *TracingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return th.withGroupOrAttrs(groupOrAttrs{attrs: attrs})
 }
 
+// WithGroup returns a log handler containing group.
 func (tl *TracingHandler) WithGroup(name string) slog.Handler {
 	panic("WithGroup not implemented")
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestSmallUnit_CreateChildSpan watches that
+// the root span and its child Spans are properly created.
 func TestSmallUnit_CreateChildSpan(t *testing.T) {
 
 	ctxRoot, trace, close := NewTracerAndRootSpan(context.Background(), "test/smallUnit/CreateChildSpan")

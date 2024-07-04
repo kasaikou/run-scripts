@@ -60,3 +60,15 @@ func (e ModelValidateError) Is(target error) bool {
 		return errors.Is(e.internalErr, target)
 	}
 }
+
+type CommandNotFoundError struct{ path string }
+
+func NewCommandNotFoundError(path string) error { return CommandNotFoundError{path: path} }
+func (e CommandNotFoundError) Error() string    { return fmt.Sprintf("'%s' command not found", e.path) }
+
+type EnvironmentNotFoundError struct{ key string }
+
+func NewEnvironmentNotFoundError(key string) error { return EnvironmentNotFoundError{key: key} }
+func (e EnvironmentNotFoundError) Error() string {
+	return fmt.Sprintf("'%s' environment not found", e.key)
+}

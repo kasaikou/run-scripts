@@ -72,3 +72,11 @@ func NewEnvironmentNotFoundError(key string) error { return EnvironmentNotFoundE
 func (e EnvironmentNotFoundError) Error() string {
 	return fmt.Sprintf("'%s' environment not found", e.key)
 }
+
+type NotImplementedForOSError struct{ os string }
+
+var NotImplementedForWindows = NotImplementedForOSError{os: "windows"}
+
+func (e NotImplementedForOSError) Error() string { return fmt.Sprintf("not implemented for %s", e.os) }
+
+var ErrExitedProcess = errors.New("exited process")

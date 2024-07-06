@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/kasaikou/markflow/pkg/models"
 )
@@ -75,4 +77,32 @@ func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 	}
 
 	return e.cmd.ProcessState.ExitCode(), nil
+}
+
+// Signal calls signal for running process.
+//
+// For windows, return models.NotImplementedForWindows.
+// And If the process has been already exited, it will returns models.ErrExitedProcess.
+func (e *Execution) Signal(sig os.Signal) error {
+	if e.cmd.Process == nil {
+		panic("execution has not been started yet")
+	} else if runtime.GOOS == "windows" {
+		return models.NotImplementedForWindows
+	} else if e.cmd.ProcessState.Exited() {
+		return models.ErrExitedProcess
+	}
+
+	return e.cmd.Process.Signal(sig)
+}
+
+// Kill kills the running process.
+// If the process has been already exited, it will returns models.ErrExitedProcess.
+func (e *Execution) Kill() error {
+	if e.cmd.Process == nil {
+		panic("execution has not been started yet")
+	} else if e.cmd.ProcessState.Exited() {
+		return models.ErrExitedProcess
+	}
+
+	return e.cmd.Process.Kill()
 }

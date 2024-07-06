@@ -9,6 +9,7 @@ import (
 	"github.com/kasaikou/markflow/pkg/models"
 )
 
+// Execution controlls command execution and stdout and stderr.
 type Execution struct {
 	cmd    *exec.Cmd
 	stdout *io.PipeReader
@@ -16,6 +17,9 @@ type Execution struct {
 	closer func()
 }
 
+// BuildExecution creates a instance from models.Execution.
+//
+// error will be models.CommandNotFoundError, models.EnvironmentNotFoundError or nil.
 func BuildExecution(execution models.Execution) (*Execution, error) {
 	path, args, err := createCmd(execution)
 	if err != nil {
@@ -43,9 +47,16 @@ func BuildExecution(execution models.Execution) (*Execution, error) {
 	}, nil
 }
 
+// Stdout returns [io.Reader] for reading stdout.
 func (e *Execution) Stdout() io.Reader { return e.stdout }
+
+// Stderr returns [io.Reader] for reading stderr.
 func (e *Execution) Stderr() io.Reader { return e.stderr }
 
+// Execute executes the configurated command.
+//
+// This function canonly be called once.
+// It will panic if called more than once.
 func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 
 	if e.cmd.Process != nil {

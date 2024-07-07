@@ -24,6 +24,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 		ExpectedExitCode int
 		ExpectedStdout   string
 		ExpectedStderr   string
+		ExpectedEnviron  []string
 	}{
 		{
 			Execution: models.Execution{
@@ -36,6 +37,20 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			ExpectedExitCode: 0,
 			ExpectedStdout:   "Hello world\n",
 			ExpectedStderr:   "",
+			ExpectedEnviron:  []string{},
+		},
+		{
+			Execution: models.Execution{
+				ID:         uuid.Must(uuid.NewV7()),
+				Name:       util.Must(models.ValidateExecutionName(`testExecuteContext['export TEST_ENV="test"]`)),
+				Lang:       util.Must(models.ValidateExecutionLanguage("sh")),
+				Script:     `echo 'TEST_ENV=test' >> ${MARKFLOW_EXPORT}`,
+				WorkingDir: wd,
+			},
+			ExpectedExitCode: 0,
+			ExpectedStdout:   "",
+			ExpectedStderr:   "",
+			ExpectedEnviron:  []string{"TEST_ENV=test"},
 		},
 	}
 
@@ -71,6 +86,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 				wg.Wait()
 				assert.Equal(t, testCase.ExpectedStdout, stdoutBuffer.String())
 				assert.Equal(t, testCase.ExpectedStderr, stderrBuffer.String())
+				assert.Equal(t, testCase.ExpectedEnviron, execution.Environ())
 			}
 		})
 	}

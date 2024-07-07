@@ -57,9 +57,10 @@ type Execution struct {
 	PrevExecutions []*Execution
 	Lang           ExecutionLanguage
 	Script         string
-	Environ        []string
+	Environments   []string
 	WorkingDir     string
 	AdditionalArgs []string
+	ExportEnviron  bool
 }
 
 // ExecutionJSONContent is a strucuture used to expand Execution in JSON format.
@@ -70,9 +71,10 @@ type ExecutionJSONContent struct {
 	PrevExecutionNames []string `json:"prev"`
 	Lang               string   `json:"lang"`
 	Script             string   `json:"script"`
-	Environ            []string `json:"environ"`
+	Environments       []string `json:"environment"`
 	WorkingDir         string   `json:"working_dir"`
 	AdditionalArgs     []string `json:"additional_args"`
+	ExportEnviron      bool     `json:"export_environ"`
 }
 
 // ToJSONContent converts the instance to ExecutionJSONContent.
@@ -90,9 +92,10 @@ func (e *Execution) ToJSONContent() ExecutionJSONContent {
 		PrevExecutionNames: prevNames,
 		Lang:               e.Lang.String(),
 		Script:             e.Script,
-		Environ:            e.Environ,
+		Environments:       e.Environments,
 		WorkingDir:         e.WorkingDir,
 		AdditionalArgs:     e.AdditionalArgs,
+		ExportEnviron:      e.ExportEnviron,
 	}
 }
 

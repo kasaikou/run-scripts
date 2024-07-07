@@ -6,17 +6,21 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/kasaikou/markflow/pkg/models"
 )
 
 // Execution controlls command execution and stdout and stderr.
 type Execution struct {
-	cmd    *exec.Cmd
-	stdout *io.PipeReader
-	stderr *io.PipeReader
-	closer func()
+	cmd     *exec.Cmd
+	stdout  *io.PipeReader
+	stderr  *io.PipeReader
+	closer  func()
+	environ []string
 }
 
 // BuildExecution creates a instance from models.Execution.
@@ -28,9 +32,13 @@ func BuildExecution(execution models.Execution) (*Execution, error) {
 		return nil, err
 	}
 
+	if execution.Environments == nil {
+		execution.Environments = []string{}
+	}
+
 	cmd := exec.Command(path, args...)
 	cmd.Dir = execution.WorkingDir
-	cmd.Env = execution.Environ
+	cmd.Env = execution.Environments
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	stderrReader, stderrWriter := io.Pipe()
@@ -65,6 +73,16 @@ func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 		panic("execution has been already started")
 	}
 
+	tempEnvPath := filepath.Join(e.cmd.Dir, fmt.Sprintf("environ-%s", uuid.Must(uuid.NewV7()).String()))
+	file, err := os.OpenFile(tempEnvPath, os.O_CREATE, 0600)
+	if err != nil {
+		return -1, fmt.Errorf("cannot open file: %w", err)
+	}
+	defer os.Remove(tempEnvPath)
+	file.Close()
+
+	e.cmd.Env = append(e.cmd.Env, "MARKFLOW_EXPORT="+tempEnvPath)
+
 	err = e.cmd.Run()
 	e.closer()
 
@@ -73,6 +91,26 @@ func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 		case *exec.ExitError:
 		default:
 			return -1, fmt.Errorf("execute command error: %w", err)
+		}
+	}
+
+	file, err = os.Open(tempEnvPath)
+	if err != nil {
+		return -1, fmt.Errorf("cannot open file: %w", err)
+	}
+	defer file.Close()
+
+	b, err := io.ReadAll(file)
+	if err != nil {
+		return -1, fmt.Errorf("cannot read file: %w", err)
+	}
+
+	// TODO: Need to verify if it is a valid environment variables.
+	environ := strings.Split(string(b), "\n")
+	e.environ = make([]string, 0, len(environ))
+	for _, env := range environ {
+		if env != "" {
+			e.environ = append(e.environ, env)
 		}
 	}
 
@@ -105,4 +143,9 @@ func (e *Execution) Kill() error {
 	}
 
 	return e.cmd.Process.Kill()
+}
+
+// Environ returns exported environment variables.
+func (e *Execution) Environ() []string {
+	return e.environ
 }

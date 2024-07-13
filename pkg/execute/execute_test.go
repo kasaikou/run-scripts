@@ -57,7 +57,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(fmt.Sprintf("executionName=%s", testCase.Execution.Name.String()), func(t *testing.T) {
-			// t.Parallel()
+			t.Parallel()
 			execution, err := BuildExecution(testCase.Execution)
 			if !assert.NoError(t, err) {
 				return

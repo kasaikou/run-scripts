@@ -24,6 +24,7 @@ func (en ExecutionName) String() string { return en.name }
 // If set to an empty string, it means that this is the execution path set in PATH.
 type ExecutionPath struct{ path string }
 
+// ValidateExecutionPath checks path is a valid execution path and create ExecutionPath instance.
 func ValidateExecutionPath(path string) (ExecutionPath, error) {
 	return ExecutionPath{path: path}, nil
 }

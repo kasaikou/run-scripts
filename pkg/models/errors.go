@@ -61,22 +61,34 @@ func (e ModelValidateError) Is(target error) bool {
 	}
 }
 
+// CommandNotFoundError expressions command path is not found.
 type CommandNotFoundError struct{ path string }
 
+// NewCommandNotFoundError creates new CommandNotFoundError.
 func NewCommandNotFoundError(path string) error { return CommandNotFoundError{path: path} }
-func (e CommandNotFoundError) Error() string    { return fmt.Sprintf("'%s' command not found", e.path) }
 
+// Error indicates error message.
+func (e CommandNotFoundError) Error() string { return fmt.Sprintf("'%s' command not found", e.path) }
+
+// EnvironmentNotFoundError expressions environment variable is not found.
 type EnvironmentNotFoundError struct{ key string }
 
+// NewEnvironmentNotFoundError creates new EnvironmentNotFoundError.
 func NewEnvironmentNotFoundError(key string) error { return EnvironmentNotFoundError{key: key} }
+
+// Error indicates error message.
 func (e EnvironmentNotFoundError) Error() string {
 	return fmt.Sprintf("'%s' environment not found", e.key)
 }
 
+// NotImplementedForOSError expressions no implementation has been created for specific OS.
 type NotImplementedForOSError struct{ os string }
 
+// NotImplementedForWindows expressions no implementation has been created for Windows.
 var NotImplementedForWindows = NotImplementedForOSError{os: "windows"}
 
+// Error indicates error message.
 func (e NotImplementedForOSError) Error() string { return fmt.Sprintf("not implemented for %s", e.os) }
 
+// ErrExitedProcess is expressions executed task has been already exited.
 var ErrExitedProcess = errors.New("exited process")

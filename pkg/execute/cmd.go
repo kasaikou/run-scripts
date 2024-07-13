@@ -31,9 +31,7 @@ func createCmd(execution models.Execution) (path string, args []string, err erro
 		if path == "" {
 			if s, ok := os.LookupEnv("SHELL"); ok {
 				path = s
-			}
-
-			if path, err = lookPath("sh"); err != nil {
+			} else if path, err = lookPath("sh"); err != nil {
 				return "", nil, errors.Join(models.NewEnvironmentNotFoundError("SHELL"), err)
 			}
 		}

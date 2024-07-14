@@ -54,28 +54,34 @@ func (el ExecutionLanguage) String() string { return el.lang }
 type Execution struct {
 	ID             uuid.UUID
 	Name           ExecutionName
+	Descriptions   []string
+	Aliases        []string
 	Path           ExecutionPath
-	PrevExecutions []*Execution
+	PrevExecutions []ReferenceExecution
 	Lang           ExecutionLanguage
 	Script         string
 	Environments   []string
 	WorkingDir     string
 	AdditionalArgs []string
-	ExportEnviron  bool
+}
+
+// NewExecution creates a Execution instance.
+func NewExecution() Execution {
+	return Execution{ID: uuid.Must(uuid.NewV7())}
 }
 
 // ExecutionJSONContent is a strucuture used to expand Execution in JSON format.
 type ExecutionJSONContent struct {
-	ID                 string   `json:"id"`
 	Name               string   `json:"name"`
 	Path               string   `json:"path,omitempty"`
+	Descriptions       []string `json:"descriptions"`
+	Aliases            []string `json:"aliases"`
 	PrevExecutionNames []string `json:"prev"`
 	Lang               string   `json:"lang"`
 	Script             string   `json:"script"`
 	Environments       []string `json:"environment"`
 	WorkingDir         string   `json:"working_dir"`
 	AdditionalArgs     []string `json:"additional_args"`
-	ExportEnviron      bool     `json:"export_environ"`
 }
 
 // ToJSONContent converts the instance to ExecutionJSONContent.
@@ -83,12 +89,12 @@ func (e *Execution) ToJSONContent() ExecutionJSONContent {
 
 	prevNames := make([]string, 0, len(e.PrevExecutions))
 	for _, prev := range e.PrevExecutions {
-		prevNames = append(prevNames, prev.Name.String())
+		prevNames = append(prevNames, prev.String())
 	}
 
 	return ExecutionJSONContent{
-		ID:                 e.ID.String(),
 		Name:               e.Name.String(),
+		Descriptions:       e.Descriptions,
 		Path:               e.Path.String(),
 		PrevExecutionNames: prevNames,
 		Lang:               e.Lang.String(),
@@ -96,7 +102,6 @@ func (e *Execution) ToJSONContent() ExecutionJSONContent {
 		Environments:       e.Environments,
 		WorkingDir:         e.WorkingDir,
 		AdditionalArgs:     e.AdditionalArgs,
-		ExportEnviron:      e.ExportEnviron,
 	}
 }
 

@@ -21,7 +21,7 @@ func (c *sectionConfig) UnmarshalYAML(node *yaml.Node) error {
 	*c = sectionConfig{}
 
 	mapping := yml.NodeMap{}
-	if err := node.Decode(mapping); err != nil {
+	if err := node.Decode(&mapping); err != nil {
 		if _, ok := err.(models.ModelValidateError); ok {
 			return err
 		} else {
@@ -32,9 +32,9 @@ func (c *sectionConfig) UnmarshalYAML(node *yaml.Node) error {
 	kind, isKindExist := mapping.Get("kind")
 	content, isContentExist := mapping.Get("content")
 
-	if isKindExist {
+	if !isKindExist {
 		return models.NewModelValidateError(fmt.Errorf("'kind' option is required"))
-	} else if isContentExist {
+	} else if !isContentExist {
 		return models.NewModelValidateError(fmt.Errorf("'content' option is required"))
 	}
 
@@ -72,8 +72,8 @@ func (c *sectionConfigKind) UnmarshalYAML(content *yaml.Node) error {
 	}
 
 	contentTag := content.ShortTag()
-	if contentTag != "!str" {
-		return models.NewModelValidateError(fmt.Errorf("kind should be !str tag, but this is %s tag", contentTag))
+	if contentTag != "!!str" {
+		return models.NewModelValidateError(fmt.Errorf("kind should be !!str tag, but this is %s tag", contentTag))
 	}
 
 	options := []string{"global", "execute", "pipeline"}

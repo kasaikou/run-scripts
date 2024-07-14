@@ -4,6 +4,13 @@
 
 シェルで `echo "hello world"` を実行します。
 
+```yaml
+kind: execute
+content:
+  environments:
+    - TEST=environment
+```
+
 ```sh
 echo "hello world"
 ```

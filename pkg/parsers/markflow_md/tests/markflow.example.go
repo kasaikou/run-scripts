@@ -12,6 +12,9 @@ var TestCaseExample = NewTestCaseMarkflowMD("markflow.example.md", models.Projec
 			Lang:               "sh",
 			Script:             "echo \"hello world\"\n",
 			WorkingDir:         currentDir,
+			Environments: []string{
+				"TEST=environment",
+			},
 		},
 		{
 			Name:               "Python の実行",

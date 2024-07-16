@@ -37,7 +37,7 @@ func WrapModelValidateError(at string, err error) error {
 		return ModelValidateError{at: append(err.at, at), internalErr: err.internalErr}
 
 	default:
-		panic(fmt.Sprintf("error is %T", err))
+		return WrapModelValidateError(at, NewModelValidateError(err))
 	}
 }
 

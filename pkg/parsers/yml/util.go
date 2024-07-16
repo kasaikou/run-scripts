@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// NodeKind2String converts from [gopkg.in/yaml.v3.Kind] to string.
 func NodeKind2String(kind yaml.Kind) string {
 	switch kind {
 	case yaml.AliasNode:
@@ -24,16 +25,19 @@ func NodeKind2String(kind yaml.Kind) string {
 	panic("unknown kind")
 }
 
+// NodeMapContent contains value node associated with the key and key node,
 type NodeMapContent struct {
 	key       string
 	keyNode   *yaml.Node
 	valueNode *yaml.Node
 }
 
+// NodeMap contains pairs of value node associated keys.
 type NodeMap struct {
 	contents []NodeMapContent
 }
 
+// UnmarshalYAML parses from yaml's mapping node to NodeMap.
 func (nm *NodeMap) UnmarshalYAML(node *yaml.Node) error {
 
 	if node.Kind != yaml.MappingNode {
@@ -61,6 +65,7 @@ func (nm *NodeMap) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
+// Get gets yaml.Node associated with the key.
 func (nm *NodeMap) Get(key string) (node *yaml.Node, exist bool) {
 	idx, exist := slices.BinarySearchFunc(nm.contents, key, func(nmc NodeMapContent, s string) int { return strings.Compare(nmc.key, s) })
 	if exist {

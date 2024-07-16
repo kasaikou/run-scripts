@@ -61,6 +61,28 @@ func (p *Project) AddPipeline(pl Pipeline) error {
 	return nil
 }
 
+// Executions provides iterator for Execution.
+func (p *Project) Executions() func(yield func(int, *Execution) bool) {
+	return func(yield func(int, *Execution) bool) {
+		for i := 0; i < len(p.executions); i++ {
+			if !yield(i, &p.executions[i]) {
+				return
+			}
+		}
+	}
+}
+
+// Pipelines provides iterator for registered Pipeline.
+func (p *Project) Pipelines() func(yield func(int, *Pipeline) bool) {
+	return func(yield func(int, *Pipeline) bool) {
+		for i := 0; i < len(p.pipelines); i++ {
+			if !yield(i, &p.pipelines[i]) {
+				return
+			}
+		}
+	}
+}
+
 // GetExecution gets the Execution instance associated with the name.
 func (p *Project) GetExecution(name string) *Execution {
 	if execution, exist := p.executionNames[name]; exist {

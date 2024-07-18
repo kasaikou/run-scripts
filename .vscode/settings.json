@@ -5,5 +5,8 @@
   ],
   "go.testEnvVars": {
     "DOCSTAK_TEST_WORKSPACE_DIR": "${workspaceFolder}"
+  },
+  "go.toolsEnvVars": {
+    "GOEXPERIMENT": "rangefunc"
   }
 }

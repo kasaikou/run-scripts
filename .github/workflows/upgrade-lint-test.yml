@@ -3,6 +3,8 @@ on:
     branches:
       - main
       - upgrade-markflow/main
+env:
+  GOEXPERIMENT: rangefunc
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -28,4 +30,4 @@ jobs:
       - name: go-mod/download
         run: go mod download
       - name: go-test/small-unit
-        run: go test -timeout 30s -run ^TestSmallUnit_ ./... 
+        run: go test -timeout 30s -run ^TestSmallUnit_ ./...

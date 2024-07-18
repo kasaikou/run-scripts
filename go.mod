@@ -1,6 +1,6 @@
 module github.com/kasaikou/markflow
 
-go 1.23rc1
+go 1.22.1
 
 require (
 	github.com/google/uuid v1.6.0

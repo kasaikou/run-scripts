@@ -4,9 +4,10 @@
     "--config=${workspaceFolder}/.golangci.yml"
   ],
   "go.testEnvVars": {
+    "GOEXPERIMENT": "rangefunc",
     "DOCSTAK_TEST_WORKSPACE_DIR": "${workspaceFolder}"
   },
   "go.toolsEnvVars": {
-    "GOEXPERIMENT": "rangefunc"
+    // "GOEXPERIMENT": "rangefunc"
   }
 }

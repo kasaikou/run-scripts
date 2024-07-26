@@ -12,15 +12,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kasaikou/markflow/pkg/models"
+	"github.com/kasaikou/markflow/pkg/usecases/execute"
 )
 
 // Execution controlls command execution and stdout and stderr.
 type Execution struct {
-	cmd     *exec.Cmd
-	stdout  *io.PipeReader
-	stderr  *io.PipeReader
-	closer  func()
-	environ []string
+	cmd          *exec.Cmd
+	stdoutWriter *io.PipeWriter
+	stdoutReader *io.PipeReader
+	stderrWriter *io.PipeWriter
+	stderrReader *io.PipeReader
+	environ      []string
+}
+
+type executionBuilder func(execution models.Execution) (*Execution, error)
+
+func (b executionBuilder) BuildExecution(execution models.Execution) (execute.Executor, error) {
+	return b(execution)
 }
 
 // BuildExecution creates a instance from models.Execution.
@@ -40,28 +48,53 @@ func BuildExecution(execution models.Execution) (*Execution, error) {
 	cmd.Dir = execution.WorkingDir
 	cmd.Env = execution.Environments
 
-	stdoutReader, stdoutWriter := io.Pipe()
-	stderrReader, stderrWriter := io.Pipe()
-
-	cmd.Stdout = stdoutWriter
-	cmd.Stderr = stderrWriter
-
 	return &Execution{
-		cmd:    cmd,
-		stdout: stdoutReader,
-		stderr: stderrReader,
-		closer: func() {
-			stdoutWriter.Close()
-			stderrWriter.Close()
-		},
+		cmd: cmd,
 	}, nil
 }
 
+var ExecutionBuilder executionBuilder = BuildExecution
+
 // Stdout returns [io.Reader] for reading stdout.
-func (e *Execution) Stdout() io.Reader { return e.stdout }
+func (e *Execution) Stdout() io.Reader {
+	if e.stdoutReader == nil {
+		e.stdoutReader, e.stdoutWriter = io.Pipe()
+		e.cmd.Stdout = e.stdoutWriter
+	}
+
+	return e.stdoutReader
+}
 
 // Stderr returns [io.Reader] for reading stderr.
-func (e *Execution) Stderr() io.Reader { return e.stderr }
+func (e *Execution) Stderr() io.Reader {
+	if e.stderrReader == nil {
+		e.stderrReader, e.stderrWriter = io.Pipe()
+		e.cmd.Stderr = e.stderrWriter
+		e.stderrReader = e.stderrReader
+	}
+
+	return e.stderrReader
+}
+
+func (e *Execution) closePipe() {
+	if e.stdoutWriter != nil {
+		e.stdoutWriter.Close()
+	}
+
+	if e.stderrWriter != nil {
+		e.stderrWriter.Close()
+	}
+}
+
+func (e *Execution) Close() {
+	if e.stdoutReader != nil {
+		e.stdoutReader.Close()
+	}
+
+	if e.stderrReader != nil {
+		e.stderrReader.Close()
+	}
+}
 
 // Execute executes the configurated command.
 //
@@ -84,7 +117,7 @@ func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 	e.cmd.Env = append(e.cmd.Env, "MARKFLOW_EXPORT="+tempEnvPath)
 
 	err = e.cmd.Run()
-	e.closer()
+	e.closePipe()
 
 	if err != nil {
 		switch err.(type) {

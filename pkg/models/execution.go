@@ -109,3 +109,40 @@ func (e *Execution) ToJSONContent() ExecutionJSONContent {
 func (e *Execution) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.ToJSONContent())
 }
+
+type ExecutionStatus int
+
+const (
+	ExecUndefined ExecutionStatus = iota
+	ExecNotPlan
+	ExecWaiting
+	ExecRunning
+	ExecSuccess
+	ExecFailed
+)
+
+func (es ExecutionStatus) IsValid() bool {
+	switch es {
+	case ExecNotPlan, ExecWaiting, ExecRunning, ExecSuccess, ExecFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+func (es ExecutionStatus) String() string {
+	switch es {
+	case ExecNotPlan:
+		return "not_plan"
+	case ExecWaiting:
+		return "waiting"
+	case ExecRunning:
+		return "running"
+	case ExecSuccess:
+		return "success"
+	case ExecFailed:
+		return "failed"
+	default:
+		return "undefined"
+	}
+}

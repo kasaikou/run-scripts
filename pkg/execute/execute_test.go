@@ -62,6 +62,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			if !assert.NoError(t, err) {
 				return
 			}
+			defer execution.Close()
 
 			stdoutBuffer := bytes.NewBuffer([]byte{})
 			stderrBuffer := bytes.NewBuffer([]byte{})

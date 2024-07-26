@@ -39,3 +39,7 @@ func (en ReferenceExecution) String() string {
 func (en ReferenceExecution) ID() uuid.UUID {
 	return en.referer.GetExecution(en.name).ID
 }
+
+func (en ReferenceExecution) Execution() *Execution {
+	return en.referer.GetExecution(en.name)
+}

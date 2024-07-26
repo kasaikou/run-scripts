@@ -18,6 +18,7 @@ jobs:
       - uses: golangci/golangci-lint-action@v6
         with:
           version: v1.59.1
+          install-mode: goinstall
   small-test:
     runs-on: ubuntu-latest
     steps:
@@ -31,3 +32,20 @@ jobs:
         run: go mod download
       - name: go-test/small-unit
         run: go test -timeout 30s -run ^TestSmallUnit_ ./...
+      - name: go-test/small-integration
+        run: go test -timeout 30s -run ^TestSmallIntegration_ ./...
+  midium-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+      - name: go-mod/download
+        run: go mod download
+      - name: go-test/midium-unit
+        run: go test -timeout 5m -run ^TestMidiumUnit_ ./...
+      - name: go-test/midium-integration
+        run: go test -timeout 5m -run ^TestMidiumIntegration_ ./...

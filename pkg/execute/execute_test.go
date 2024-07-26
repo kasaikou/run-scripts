@@ -30,7 +30,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			Execution: models.Execution{
 				ID:         uuid.Must(uuid.NewV7()),
 				Name:       util.Must(models.ValidateExecutionName(`testExecuteContext['echo "Hello world" to stdout']`)),
-				Lang:       util.Must(models.ValidateExecutionLanguage("sh")),
+				Lang:       util.Must(models.ValidateExecutionLanguage("bash")),
 				Script:     `echo "Hello world"`,
 				WorkingDir: wd,
 			},
@@ -43,7 +43,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			Execution: models.Execution{
 				ID:         uuid.Must(uuid.NewV7()),
 				Name:       util.Must(models.ValidateExecutionName(`testExecuteContext['export TEST_ENV="test"]`)),
-				Lang:       util.Must(models.ValidateExecutionLanguage("sh")),
+				Lang:       util.Must(models.ValidateExecutionLanguage("bash")),
 				Script:     `echo 'TEST_ENV=test' >> ${MARKFLOW_EXPORT}`,
 				WorkingDir: wd,
 			},
@@ -62,18 +62,22 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			if !assert.NoError(t, err) {
 				return
 			}
+			defer execution.Close()
 
 			stdoutBuffer := bytes.NewBuffer([]byte{})
 			stderrBuffer := bytes.NewBuffer([]byte{})
 			wg := sync.WaitGroup{}
+			defer wg.Wait()
 
 			wg.Add(1)
+			execution.Stdout()
 			go func() {
 				defer wg.Done()
 				util.Must(io.Copy(stdoutBuffer, execution.Stdout()))
 			}()
 
 			wg.Add(1)
+			execution.Stderr()
 			go func() {
 				defer wg.Done()
 				util.Must(io.Copy(stderrBuffer, execution.Stderr()))

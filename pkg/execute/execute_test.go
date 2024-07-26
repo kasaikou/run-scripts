@@ -67,6 +67,7 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			stdoutBuffer := bytes.NewBuffer([]byte{})
 			stderrBuffer := bytes.NewBuffer([]byte{})
 			wg := sync.WaitGroup{}
+			defer wg.Wait()
 
 			wg.Add(1)
 			go func() {

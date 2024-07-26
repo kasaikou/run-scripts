@@ -70,12 +70,14 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			defer wg.Wait()
 
 			wg.Add(1)
+			execution.Stdout()
 			go func() {
 				defer wg.Done()
 				util.Must(io.Copy(stdoutBuffer, execution.Stdout()))
 			}()
 
 			wg.Add(1)
+			execution.Stderr()
 			go func() {
 				defer wg.Done()
 				util.Must(io.Copy(stderrBuffer, execution.Stderr()))
@@ -86,8 +88,8 @@ func TestMidiumUnit_Execute(t *testing.T) {
 			if assert.NoError(t, err) {
 				assert.Equal(t, testCase.ExpectedExitCode, exitCode)
 				wg.Wait()
-				assert.Equal(t, testCase.ExpectedStdout, stdoutBuffer.String(), "stdout", stdoutBuffer.String(), "stderr", stderrBuffer.String())
-				assert.Equal(t, testCase.ExpectedStderr, stderrBuffer.String(), "stdout", stdoutBuffer.String(), "stderr", stderrBuffer.String())
+				assert.Equal(t, testCase.ExpectedStdout, stdoutBuffer.String())
+				assert.Equal(t, testCase.ExpectedStderr, stderrBuffer.String())
 				assert.Equal(t, testCase.ExpectedEnviron, execution.Environ())
 			}
 		})

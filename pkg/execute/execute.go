@@ -22,6 +22,8 @@ type Execution struct {
 	stdoutReader *io.PipeReader
 	stderrWriter *io.PipeWriter
 	stderrReader *io.PipeReader
+	enableStdout bool
+	enableStderr bool
 	environ      []string
 }
 
@@ -48,31 +50,29 @@ func BuildExecution(execution models.Execution) (*Execution, error) {
 	cmd.Dir = execution.WorkingDir
 	cmd.Env = execution.Environments
 
-	return &Execution{
+	e := &Execution{
 		cmd: cmd,
-	}, nil
+	}
+
+	e.stdoutReader, e.stdoutWriter = io.Pipe()
+	e.cmd.Stdout = e.stdoutWriter
+	e.stderrReader, e.stderrWriter = io.Pipe()
+	e.cmd.Stderr = e.stderrWriter
+
+	return e, nil
 }
 
 var ExecutionBuilder executionBuilder = BuildExecution
 
 // Stdout returns [io.Reader] for reading stdout.
 func (e *Execution) Stdout() io.Reader {
-	if e.stdoutReader == nil {
-		e.stdoutReader, e.stdoutWriter = io.Pipe()
-		e.cmd.Stdout = e.stdoutWriter
-	}
-
+	e.enableStdout = true
 	return e.stdoutReader
 }
 
 // Stderr returns [io.Reader] for reading stderr.
 func (e *Execution) Stderr() io.Reader {
-	if e.stderrReader == nil {
-		e.stderrReader, e.stderrWriter = io.Pipe()
-		e.cmd.Stderr = e.stderrWriter
-		e.stderrReader = e.stderrReader
-	}
-
+	e.enableStderr = true
 	return e.stderrReader
 }
 
@@ -104,6 +104,14 @@ func (e *Execution) Execute(ctx context.Context) (exitCode int, err error) {
 
 	if e.cmd.Process != nil {
 		panic("execution has been already started")
+	}
+
+	if e.enableStdout == false {
+		e.cmd.Stdout = nil
+	}
+
+	if e.enableStderr == false {
+		e.cmd.Stderr = nil
 	}
 
 	tempEnvPath := filepath.Join(e.cmd.Dir, fmt.Sprintf("environ-%s", uuid.Must(uuid.NewV7()).String()))

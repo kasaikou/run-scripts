@@ -118,7 +118,7 @@ func (u *ExecuteUseCase) executeExecutionWorker(ctx context.Context, idx int, re
 	workerLogger := u.logger.With(slog.Int("worker_idx", idx))
 
 	for req := range util.RouteChanContext(ctx, recv) {
-		ctx, closeSpan := trace.WithSpan(ctx, strings.Join())
+		ctx, closeSpan := trace.WithSpan(ctx, strings.Join([]string{"execute/worker/executions", req.execution.ID.String()}, "/"))
 		defer closeSpan()
 
 		logger := workerLogger

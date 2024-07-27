@@ -1,7 +1,6 @@
 package proc_exec
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -9,171 +8,140 @@ import (
 )
 
 type ExecutionResult struct {
-	Execution *models.Execution
-	Status    models.ExecutionStatus
+	Task   models.Task
+	Status models.Status
+}
+
+var managerResultMapsMapping = [...]models.Status{
+	models.StatusWaiting,
+	models.StatusRunning,
+	models.StatusSuccess,
+	models.StatusFailed,
+	models.StatusNotPlan,
 }
 
 type ExecutionResultsManager struct {
-	lock      sync.RWMutex
-	resultMap map[uuid.UUID]ExecutionResult
+	lock     sync.RWMutex
+	taskMaps []map[uuid.UUID]models.Task
 }
 
 func NewExecutionResultsManager() *ExecutionResultsManager {
-	return &ExecutionResultsManager{
-		resultMap: make(map[uuid.UUID]ExecutionResult),
+
+	m := &ExecutionResultsManager{
+		taskMaps: make([]map[uuid.UUID]models.Task, len(managerResultMapsMapping)),
 	}
+
+	for i := range len(m.taskMaps) {
+		m.taskMaps[i] = make(map[uuid.UUID]models.Task)
+	}
+
+	return m
 }
 
-func (p *ExecutionResultsManager) Register(execution *models.Execution, initStatus models.ExecutionStatus) {
+func (p *ExecutionResultsManager) statusIndex(status models.Status) int {
+	for i := range managerResultMapsMapping {
+		if managerResultMapsMapping[i] == status {
+			return i
+		}
+	}
+
+	panic("invalid status")
+}
+
+func (p *ExecutionResultsManager) Register(task models.Task, initStatus models.Status) {
 
 	p.lock.Lock()
 	func() {
-		p.resultMap[execution.ID] = ExecutionResult{
-			Execution: execution,
-			Status:    initStatus,
+		p.taskMaps[p.statusIndex(initStatus)][task.ID()] = task
+	}()
+
+	p.lock.Unlock()
+}
+
+func (p *ExecutionResultsManager) UpdateStatus(task models.Task, updateStatus models.Status) {
+
+	p.lock.Lock()
+	func() {
+		for i := range p.taskMaps {
+			task, exist := p.taskMaps[i][task.ID()]
+
+			if exist {
+				if updateStatus == managerResultMapsMapping[i] {
+					return
+				}
+
+				delete(p.taskMaps[i], task.ID())
+				p.taskMaps[p.statusIndex(updateStatus)][task.ID()] = task
+			}
 		}
 	}()
 
 	p.lock.Unlock()
 }
 
-func (p *ExecutionResultsManager) UpdateStatus(execution *models.Execution, updateStatus models.ExecutionStatus) {
+func (p *ExecutionResultsManager) watchStatus(tasks ...models.Task) models.Status {
 
-	p.lock.Lock()
-	func() {
-		result, exist := p.resultMap[execution.ID]
-		if !exist {
-			return
-		}
-
-		result.Status = updateStatus
-		p.resultMap[execution.ID] = result
-	}()
-
-	p.lock.Unlock()
-}
-
-func (p *ExecutionResultsManager) watchStatus(executions ...*models.Execution) models.ExecutionStatus {
-
-	result := p.resultMap[executions[0].ID]
-	if !result.Status.IsValid() {
-		panic(fmt.Sprintf("status of '%s' execution is undefined", result.Execution.Name.String()))
-	}
-
-	switch result.Status {
-	case models.ExecFailed, models.ExecNotPlan:
-		return result.Status
-	}
-
-	status := result.Status
-
-	for i := 1; i < len(executions); i++ {
-		result := p.resultMap[executions[i].ID]
-		if !result.Status.IsValid() {
-			panic(fmt.Sprintf("status of '%s' execution is undefined", result.Execution.Name.String()))
-		}
-
-		switch result.Status {
-		case models.ExecFailed, models.ExecNotPlan:
-			return result.Status
-
-		case models.ExecRunning:
-			switch status {
-			case models.ExecSuccess, models.ExecWaiting:
-				status = models.ExecRunning
-			}
-
-		case models.ExecWaiting:
-			switch status {
-			case models.ExecSuccess, models.ExecRunning:
-				status = models.ExecRunning
+	notPlanTasks := p.taskMaps[p.statusIndex(models.StatusNotPlan)]
+	if len(notPlanTasks) > 0 {
+		for i := range tasks {
+			if _, exist := notPlanTasks[tasks[i].ID()]; exist {
+				return models.StatusNotPlan
 			}
 		}
 	}
 
-	return status
+	failedTasks := p.taskMaps[p.statusIndex(models.StatusFailed)]
+	if len(failedTasks) > 0 {
+		for i := range tasks {
+			if _, exist := failedTasks[tasks[i].ID()]; exist {
+				return models.StatusFailed
+			}
+		}
+	}
+
+	allSuccess := true
+	successTasks := p.taskMaps[p.statusIndex(models.StatusSuccess)]
+	if len(successTasks) > 0 {
+		for i := range tasks {
+			if _, exist := successTasks[tasks[i].ID()]; !exist {
+				allSuccess = false
+			}
+		}
+	} else {
+		allSuccess = false
+	}
+
+	if allSuccess {
+		return models.StatusSuccess
+	}
+
+	allWaiting := true
+	waitingTasks := p.taskMaps[p.statusIndex(models.StatusWaiting)]
+	if len(waitingTasks) > 0 {
+		for i := range tasks {
+			if _, exist := waitingTasks[tasks[i].ID()]; !exist {
+				allWaiting = false
+			}
+		}
+	} else {
+		allWaiting = false
+	}
+
+	if allWaiting {
+		return models.StatusWaiting
+	}
+
+	return models.StatusRunning
 }
 
-func (p *ExecutionResultsManager) WatchStatus(executions ...*models.Execution) models.ExecutionStatus {
+func (p *ExecutionResultsManager) WatchStatus(tasks ...models.Task) models.Status {
 
-	if len(executions) == 0 {
+	if len(tasks) == 0 {
 		panic("executions argument is empty")
 	}
 
 	p.lock.RLock()
-	result := p.watchStatus(executions...)
+	result := p.watchStatus(tasks...)
 	p.lock.RUnlock()
 	return result
 }
-
-func (p *ExecutionResultsManager) PreparedExecution() *models.Execution {
-
-	p.lock.RLock()
-	execution := func() *models.Execution {
-		deps := make([]*models.Execution, 0, len(p.resultMap))
-
-		for _, result := range p.resultMap {
-			if result.Status == models.ExecWaiting {
-				if len(result.Execution.PrevExecutions) == 0 {
-					return result.Execution
-				}
-
-				deps := deps[:0]
-				for i := range result.Execution.PrevExecutions {
-					deps = append(deps, result.Execution.PrevExecutions[i].Execution())
-				}
-
-				status := p.watchStatus(deps...)
-				if status == models.ExecSuccess {
-					return result.Execution
-				} else if status == models.ExecFailed {
-					return nil
-				}
-
-			} else if result.Status == models.ExecFailed {
-				return nil
-			}
-		}
-
-		return nil
-	}()
-	p.lock.RUnlock()
-
-	return execution
-}
-
-// func (p *ExecutionResultsManager) Contains(status models.ExecutionStatus, executions ...*models.Execution) bool {
-
-// 	p.lock.RLock()
-// 	result := func() bool {
-// 		for i := range executions {
-// 			result := p.resultMap[executions[i].ID]
-// 			if result.Status == status {
-// 				return true
-// 			} else if !result.Status.IsValid() {
-// 				panic(fmt.Sprintf("status of '%s' execution is undefined", result.Execution.Name.String()))
-// 			}
-// 		}
-
-// 		return false
-// 	}()
-// 	p.lock.RUnlock()
-// 	return result
-// }
-
-// func (p *ExecutionResultsManager) Every(status models.ExecutionStatus, executions ...*models.Execution) bool {
-
-// 	p.lock.RLock()
-// 	result := func() bool {
-// 		for i := range executions {
-// 			result := p.resultMap[executions[i].ID]
-// 			if result.Status != status {
-// 				return false
-// 			}
-// 		}
-
-// 		return true
-// 	}()
-// 	p.lock.RUnlock()
-// 	return result
-// }

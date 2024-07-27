@@ -48,7 +48,7 @@ func (u *ExecuteUseCase) ExecuteExecution(ctx context.Context, req ExecuteExecut
 	executions := execution.ResolveAllDependencies(req.CommandExecutions...)
 	results := proc_exec.NewExecutionResultsManager()
 	for i := range executions {
-		results.Register(executions[i], models.ExecWaiting)
+		results.Register(executions[i], models.StatusWaiting)
 	}
 	res.Results = results
 
@@ -86,7 +86,7 @@ func (u *ExecuteUseCase) ExecuteExecution(ctx context.Context, req ExecuteExecut
 				}
 
 				switch status := results.WatchStatus(executions...); status {
-				case models.ExecSuccess, models.ExecFailed:
+				case models.StatusSuccess, models.StatusFailed:
 					cancel()
 					return
 				}
@@ -125,27 +125,27 @@ func (u *ExecuteUseCase) executeExecutionWorker(ctx context.Context, idx int, re
 
 		execution, err := u.execBuilder.BuildExecution(*req.execution)
 		if err != nil {
-			req.manager.UpdateStatus(req.execution, models.ExecFailed)
+			req.manager.UpdateStatus(req.execution, models.StatusFailed)
 			logger.ErrorContext(ctx, "Error in Building Execution.", slog.Any("error", err))
 			req.onFail()
 		}
 
-		req.manager.UpdateStatus(req.execution, models.ExecRunning)
+		req.manager.UpdateStatus(req.execution, models.StatusRunning)
 		logger.InfoContext(ctx, "Start Executing Command.")
 		req.onStart()
 		exitCode, err := execution.Execute(ctx)
 
 		if err != nil {
-			req.manager.UpdateStatus(req.execution, models.ExecFailed)
+			req.manager.UpdateStatus(req.execution, models.StatusFailed)
 			logger.ErrorContext(ctx, "Error in Executing Command.", slog.Any("error", err))
 			req.onFail()
 		} else if exitCode != 0 {
-			req.manager.UpdateStatus(req.execution, models.ExecFailed)
+			req.manager.UpdateStatus(req.execution, models.StatusFailed)
 			logger.ErrorContext(ctx, "Exit code is not 0.", slog.Int("exit_code", exitCode))
 			req.onFail()
 		}
 
-		req.manager.UpdateStatus(req.execution, models.ExecSuccess)
+		req.manager.UpdateStatus(req.execution, models.StatusSuccess)
 		logger.InfoContext(ctx, "Suceeded for Executing Command.")
 		req.onSucceed()
 	}
